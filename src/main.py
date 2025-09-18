@@ -9,8 +9,8 @@
 
 # Library imports
 from vex import *
-import urandom
-
+import random
+# Import urandom for generating random numbers
 brain = Brain()
 
 def autonomous():
@@ -23,20 +23,24 @@ def user_control():
     brain.screen.print("driver control", 0, 0)
     while True:
         # IntakeFirst1 control
-        if controller_1.buttonR1.pressing():
-            IntakeFirst1.spin(FORWARD)
-        elif controller_1.buttonR2.pressing():
-            IntakeFirst1.spin(FORWARD)
+        if controller_1.buttonL1.pressing():
+            IntakeFirst1.spin(FORWARD)  
+        elif controller_1.buttonL2.pressing():
+            IntakeFirst1.spin(REVERSE)
         else:
             IntakeFirst1.stop()
+            wait(20, MSEC)
+        
+      
 
         # IntakeFourth4 control
-        if controller_1.buttonL1.pressing():
+        if controller_1.buttonX.pressing():
             IntakeFourth4.spin(FORWARD)
-        elif controller_1.buttonL2.pressing():
+        elif controller_1.buttonB.pressing():
             IntakeFourth4.spin(REVERSE)
         else:
             IntakeFourth4.stop()
+            wait(20, MSEC)
 
         # Ramp control
         if controller_1.buttonUp.pressing():
@@ -47,24 +51,29 @@ def user_control():
 
         # Roller intake control
         if controller_1.buttonA.pressing():
+            global myVariable, IntakeFirst1_toggle
             RollerIntakeA.set(True)
         elif controller_1.buttonB.pressing():
             RollerIntakeA.set(False)
             wait(100, MSEC)  # ensure roller is fully retracted
 
         # IntakeSecond2 and IntakeThird3 control
-        if controller_1.buttonR1.pressing():
+        def contrloller_1_buttonRIGHT_pressed_callback_0():
+        if controller_1.buttonR1.pressed():
             IntakeSecond2.spin(FORWARD)
             IntakeThird3.spin(FORWARD)
-        elif controller_1.buttonR2.pressing():
-            IntakeSecond2.spin(REVERSE)
+        elif controller_1.buttonR2.pressed():
+            controller_1.buttonR2.pressed(lambda: IntakeSecond2.spin(REVERSE))
             IntakeThird3.spin(REVERSE)
         else:
             IntakeSecond2.stop()
             IntakeThird3.stop()
 
+       
         # Wait before repeating the process
         wait(20, MSEC)
+
+
 
 
 def inches_to_mm(inches):
@@ -87,11 +96,11 @@ comp = Competition(user_control, autonomous)
 brain.screen.clear_screen()
 
 # robot configuration
-left_motor_a = Motor(Ports.PORT9, GearSetting.RATIO_6_1, False)
-left_motor_b = Motor(Ports.PORT10, GearSetting.RATIO_6_1, False)
+left_motor_a = Motor(Ports.PORT9, GearSetting.RATIO_6_1,True)
+left_motor_b = Motor(Ports.PORT10, GearSetting.RATIO_6_1, True)
 left_drive_smart = MotorGroup(left_motor_a, left_motor_b)
-right_motor_a = Motor(Ports.PORT8, GearSetting.RATIO_6_1, True)
-right_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_6_1, True)
+right_motor_a = Motor(Ports.PORT8, GearSetting.RATIO_6_1, False)
+right_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_6_1, False)
 right_drive_smart = MotorGroup(right_motor_a, right_motor_b)
 drivetrain_inertial = Inertial(Ports.PORT12)
 drivetrain = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_inertial, 319.19, 320, 40, MM, 2)
@@ -116,8 +125,9 @@ IntakeFourth4.set_velocity(100, PERCENT)
 
 #pnumatics
 
-ramp_actuator = DigitalOut(brain.three_wire_port.a)
-RollerIntakeA = DigitalOut(brain.three_wire_port.b)
+ramp_actuator = DigitalOut(brain.three_wire_port.b)
+RollerIntakeA = DigitalOut(brain.three_wire_port.a)
+gateC = DigitalOut(brain.three_wire_port.c)
 
 
 
@@ -128,9 +138,10 @@ wait(30, MSEC)
 # Make random actually random
 def initializeRandomSeed():
     wait(100, MSEC)
-    random = brain.battery.voltage(MV) + brain.battery.current(CurrentUnits.AMP) * 100 + brain.timer.system_high_res()
-    urandom.seed(int(random))
-      
+    # Calculate a seed value using battery voltage, current, and system time
+    seed_value = int(brain.battery.voltage(MV) + brain.battery.current(CurrentUnits.AMP) * 100 + brain.timer.system_high_res())
+    random.seed(seed_value)  # Use the calculated seed value to initialize the random module
+
 # Set random seed 
 initializeRandomSeed()
 
@@ -237,8 +248,7 @@ myVariable = 0
 
 def when_started1():
     global myVariable
-    IntakeFirst1.set_velocity(100, PERCENT)
-    IntakeSecond2.set_velocity(100, PERCENT)
+    
     drivetrain.set_drive_velocity(100, PERCENT)
 
 when_started1()
@@ -268,7 +278,7 @@ def drive_pid (target_inches, timeout_ms=2000):
     initial_heading = drivetrain_inertial.rotation()
     start_time = brain.timer.time(MSEC)
     while True:
-        avg_pos = (left_drive_smart.position(MM) + right_drive_smart.position(MM)) / 2
+        avg_pos = ((left_drive_smart.position(RotationUnits.REV) + right_drive_smart.position(RotationUnits.REV)) / 2) * (319.19 * 3.14159 / 360)
         # Define INCH as millimeters per inch
         INCH = 25.4
         drive_power = drive_pid.calculate(target_inches * INCH, avg_pos)
