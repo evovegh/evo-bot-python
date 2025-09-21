@@ -14,69 +14,116 @@ import random
 brain = Brain()
 
 def autonomous():
-    brain.screen.clear_screen()
-    brain.screen.print("autonomous code")
-    # place automonous code here
+    # Placeholder for autonomous logic
+    pass
+ 
 
-def user_control():
-    brain.screen.clear_screen()
-    brain.screen.print("driver control", 0, 0)
-    while True:
-        # IntakeFirst1 control
-        if controller_1.buttonL1.pressing():
-            IntakeFirst1.spin(FORWARD)  
-        elif controller_1.buttonL2.pressing():
-            IntakeFirst1.spin(REVERSE)
-        else:
-            IntakeFirst1.stop()
-            wait(20, MSEC)
+def toggle_gate():
+
+    if gateC.value():
+        gateC.set(False)
+    else:
+        gateC.set(True)
+
+def toggle_ramp():
+
+    if ramp_actuator.value():
+        ramp_actuator.set(False)
+    else:
+        ramp_actuator.set(True)
+
+def toggle_roller():
+
+    if RollerIntakeA.value():
+        RollerIntakeA.set(False)
+    else:
+        RollerIntakeA.set(True)
+
+controller_1 = Controller(PRIMARY)  # Ensure controller_1 is defined before usage
+def outake_control(dir=FORWARD, spd=100):
+    """ Start and Stop IntakeFirst3
+    """
+    global is_outake_spinning
+    if not is_outake_spinning:
+        outake.spin(dir, spd, VelocityUnits.PERCENT)
+        is_outake_spinning = True
+    else:
+        outake.stop()
+        is_outake_spinning = False   
+
+controller_1.buttonLeft.pressed(toggle_gate)
+controller_1.buttonRight.pressed(toggle_ramp)
+controller_1.buttonY.pressed(toggle_roller)
+def intake_control(dir=FORWARD, spd=100):
+    """ Start and Stop IntakeFirst3
+    """
+    global is_intake_spinning
+    if not is_intake_spinning:
+        IntakeFirst1.spin(dir, spd, VelocityUnits.PERCENT)
+        is_intake_spinning = True
+    else:
+        IntakeFirst1.stop()
+        is_intake_spinning = False  
+
+# Removed duplicate definition of score_backward_alternate
+
+def score_backward_alternate():
+    """ Start IntakeFirst3 and IntakeSecond2 in reverse
+    """
+    intake_control(REVERSE)
+    intake_control(REVERSE)
+
+controller_1.buttonR2.pressed(lambda:score_backward())
+def score_forward():
+    """ Start IntakeFirst3 and IntakeSecond2
+    """
+    intake_control(FORWARD)
+    intake_control(FORWARD)
+
+controller_1.buttonUp.pressed(score_forward)
+
+def outake_forward():
+    """ Start IntakeFirst3 and IntakeSecond2
+    """
+    outake_control(FORWARD)
+def outake_backward():
+    """ Start IntakeFirst3 and IntakeSecond2 in reverse
+    """
+    outake_control(REVERSE)
+
+controller_1.buttonA.pressed(outake_forward)
+controller_1.buttonB.pressed(outake_backward)
+
+def score_backward():
+    """ Start IntakeFirst3 and IntakeSecond2 in reverse
+    """
+    intake_control(REVERSE)
+    intake_control(REVERSE)
+
+def loader_control(dir=FORWARD, spd=100):
+    """ Start and Stop the loader motor """
+    global is_loader_spinning
+    if not is_loader_spinning:
+        IntakeFourth4.spin(dir, spd, VelocityUnits.PERCENT)
+        is_loader_spinning = True
+    else:
+        IntakeFourth4.stop()
+        is_loader_spinning = False
+
+def load_ball():
+    loader_control(FORWARD)
+
+controller_1.buttonX.pressed(load_ball)
+
+
+
+
         
-      
-
-        # IntakeFourth4 control
-        if controller_1.buttonX.pressing():
-            IntakeFourth4.spin(FORWARD)
-        elif controller_1.buttonB.pressing():
-            IntakeFourth4.spin(REVERSE)
-        else:
-            IntakeFourth4.stop()
-            wait(20, MSEC)
-
-        # Ramp control
-        if controller_1.buttonUp.pressing():
-            ramp_actuator.set(True)
-        elif controller_1.buttonDown.pressing():
-            ramp_actuator.set(False)
-            wait(100, MSEC)  # ensure ramp is fully retracted
-
-        # Roller intake control
-        if controller_1.buttonA.pressing():
-            global myVariable, IntakeFirst1_toggle
-            RollerIntakeA.set(True)
-        elif controller_1.buttonB.pressing():
-            RollerIntakeA.set(False)
-            wait(100, MSEC)  # ensure roller is fully retracted
-
-        # IntakeSecond2 and IntakeThird3 control
-        def contrloller_1_buttonRIGHT_pressed_callback_0():
-        if controller_1.buttonR1.pressed():
-            IntakeSecond2.spin(FORWARD)
-            IntakeThird3.spin(FORWARD)
-        elif controller_1.buttonR2.pressed():
-            controller_1.buttonR2.pressed(lambda: IntakeSecond2.spin(REVERSE))
-            IntakeThird3.spin(REVERSE)
-        else:
-            IntakeSecond2.stop()
-            IntakeThird3.stop()
-
-       
-        # Wait before repeating the process
-        wait(20, MSEC)
-
-
-
 
 def inches_to_mm(inches):
+    # Convert inches to millimeters
+    return inches * 25.4
+    pass # Placeholder for function logic
     # convert inches to millimeters
     return inches * 25.4    
 
@@ -90,6 +137,11 @@ def inches_to_mm(inches):
 
 
 # create competition instance
+def user_control():
+    # Add user control code here
+    brain.screen.clear_screen()
+    brain.screen.print("user control code")
+
 comp = Competition(user_control, autonomous)
 
 # actions to do when the program starts
@@ -108,6 +160,7 @@ drivetrain = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_inertial
 IntakeFirst1 = Motor(Ports.PORT1, GearSetting.RATIO_6_1, False)
 IntakeSecond2 = Motor(Ports.PORT2, GearSetting.RATIO_6_1, True)
 IntakeThird3 = Motor(Ports.PORT3, GearSetting.RATIO_18_1, False)
+outake = MotorGroup( IntakeSecond2, IntakeThird3)
 controller_1 = Controller(PRIMARY)
 left_drive_smart.set_stopping(BrakeType.BRAKE)
 right_drive_smart.set_stopping(BrakeType.BRAKE) 
@@ -239,6 +292,15 @@ def rc_auto_loop_function_controller_1():
 
 # define variable for remote controller enable/disable
 remote_control_code_enabled = True
+
+# define variable to track the state of outake spinning
+is_outake_spinning = False
+
+# define variable to track the state of intake spinning
+is_intake_spinning = False
+
+# define variable to track the state of loader spinning
+is_loader_spinning = False
 
 rc_auto_loop_thread_controller_1 = Thread(rc_auto_loop_function_controller_1)
 
