@@ -48,7 +48,8 @@ def autonomous():
     # Set drive velocity for this upcoming autonomous drive only
     
     drive_pid(11,speed_percent=50)  # Drive forward 7.5 inches
-    turn_pid(-273)   # Turn right 90 degrees
+    turn_pid(273)   # Turn right 90 degrees
+    
     drive_pid(3)  # Drive forward 36 inches
     
 
