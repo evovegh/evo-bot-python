@@ -12,9 +12,46 @@ from vex import *
 import random
 # Import urandom for generating random numbers
 brain = Brain()
+
+# Safe Brain screen helpers (some VEX Python builds lack certain screen APIs)
+def screen_clear_line(row):
+    try:
+        if hasattr(brain, 'screen') and hasattr(brain.screen, 'clear_line'):
+            brain.screen.clear_line(row)
+    except Exception:
+        pass
+
+def screen_print(text, row=None, col=None):
+    try:
+        if row is not None and col is not None:
+            if hasattr(brain, 'screen') and hasattr(brain.screen, 'set_cursor'):
+                brain.screen.set_cursor(row, col)
+        if hasattr(brain, 'screen') and hasattr(brain.screen, 'print'):
+            brain.screen.print(text)
+        else:
+            print(text)
+    except Exception:
+        try:
+            print(text)
+        except Exception:
+            pass
+
 def autonomous():
-    # Placeholder for autonomous logic
-    pass
+    calibrate_drivetrain()
+    IntakeFirst1.set_velocity(100, PERCENT)
+    IntakeSecond2.set_velocity(100, PERCENT)
+    IntakeThird3.set_velocity(100, PERCENT)
+    IntakeFourth4.set_velocity(100, PERCENT)
+    ramp_actuator.set(True)  # Lower ramp
+    IntakeFirst1.spin(FORWARD, 100, PERCENT)
+    IntakeSecond2.spin(FORWARD, 100, PERCENT)
+    # Set drive velocity for this upcoming autonomous drive only
+    
+    drive_pid(11,speed_percent=50)  # Drive forward 7.5 inches
+    turn_pid(-273)   # Turn right 90 degrees
+    drive_pid(3)  # Drive forward 36 inches
+    
+
  
 
 def toggle_gate():
@@ -72,16 +109,16 @@ def score_backward():
     """ Start IntakeFirst3 and IntakeSecond2 in reverse
     """
     intake_control(REVERSE)
-    intake_control(REVERSE)
+    
 
 controller_1.buttonR2.pressed(score_backward)
 def score_forward():
     """ Start IntakeFirst3 and IntakeSecond2
     """
     intake_control(FORWARD)
-    intake_control(FORWARD)
 
-controller_1.buttonUp.pressed(score_forward)
+
+controller_1.buttonR1.pressed(score_forward)
 
 def outake_forward():
     """ Start IntakeFirst3 and IntakeSecond2
@@ -92,8 +129,8 @@ def outake_backward():
     """
     outake_control(REVERSE)
 
-controller_1.buttonA.pressed(outake_forward)
-controller_1.buttonB.pressed(outake_backward)
+controller_1.buttonL2.pressed(outake_forward)
+controller_1.buttonL1.pressed(outake_backward)
 
 
 def loader_control(dir=FORWARD, spd=100):
@@ -109,7 +146,7 @@ def loader_control(dir=FORWARD, spd=100):
 def load_ball():
     loader_control(FORWARD)
 
-controller_1.buttonX.pressed(load_ball)
+controller_1.buttonA.pressed(load_ball)
 
 
 
@@ -137,6 +174,7 @@ def user_control():
     # Add user control code here
     brain.screen.clear_screen()
     brain.screen.print("user control code")
+    calibrate_drivetrain()
 
 comp = Competition(user_control, autonomous)
 
@@ -211,6 +249,88 @@ def calibrate_drivetrain():
 
 # Calibrate the Drivetrain
 calibrate_drivetrain()
+
+# --- Robot info display helpers -------------------------------------------------
+def _safe_attr(obj, name):
+    try:
+        return getattr(obj, name)
+    except Exception:
+        return None
+
+def get_robot_info():
+    info = {}
+    try:
+        # SmartDrive constructor used: SmartDrive(..., wheel_travel, track_width, wheel_diameter, ...)
+        # We try to read common attribute names if available.
+        info[12.57] = _safe_attr(drivetrain, 'wheel_travel')
+        info[14] = _safe_attr(drivetrain, 'track_width')
+        info[4] = _safe_attr(drivetrain, 'wheel_diameter')
+        info[2:1] = _safe_attr(drivetrain, 'external_gear_ratio')
+    except Exception:
+        pass
+
+    try:
+        left_ports = []
+        if 'left_motor_a' in globals():
+            left_ports.append(str(_safe_attr(left_motor_a, 'port') or 'P?'))
+        if 'left_motor_b' in globals():
+            left_ports.append(str(_safe_attr(left_motor_b, 'port') or 'P?'))
+        info['left_motors'] = ','.join(left_ports) if left_ports else None
+    except Exception:
+        info['left_motors'] = None
+
+    try:
+        right_ports = []
+        if 'right_motor_a' in globals():
+            right_ports.append(str(_safe_attr(right_motor_a, 'port') or 'P?'))
+        if 'right_motor_b' in globals():
+            right_ports.append(str(_safe_attr(right_motor_b, 'port') or 'P?'))
+        info['right_motors'] = ','.join(right_ports) if right_ports else None
+    except Exception:
+        info['right_motors'] = None
+
+    # Compute circumference if diameter is available (fallback to 40 mm)
+    try:
+        d = info.get('wheel_diameter')
+        if d is None:
+            d = 40
+        info['wheel_circumference'] = float(d) * 3.14159 if d is not None else None
+    except Exception:
+        info['wheel_circumference'] = None
+
+    info['drivetrain_repr'] = str(drivetrain) if 'drivetrain' in globals() else None
+    return info
+
+def display_robot_info_loop():
+    try:
+        while True:
+            try:
+                info = get_robot_info()
+                wd = info.get('wheel_diameter')
+                circ = info.get('wheel_circumference')
+                tw = info.get('track_width')
+                gr = info.get('gear_ratio')
+                lm = info.get('left_motors') or 'n/a'
+                rm = info.get('right_motors') or 'n/a'
+
+                s1 = 'Wdia:' + (str(int(wd)) if wd is not None else 'n/a') + 'mm'
+                s1 += ' C:' + (str(int(circ)) + 'mm' if circ is not None else 'n/a')
+                screen_print(s1, 6, 1)
+
+                s2 = 'Track:' + (str(int(tw)) + 'mm' if tw is not None else 'n/a')
+                s2 += ' Gear:' + (str(gr) if gr is not None else 'n/a')
+                screen_print(s2, 7, 1)
+
+                s3 = 'L:' + lm + ' R:' + rm
+                screen_print(s3, 8, 1)
+            except Exception:
+                pass
+            wait(1000, MSEC)
+    except Exception:
+        return
+
+# Start robot info display thread
+robot_info_thread = Thread(display_robot_info_loop)
 
 
 def play_vexcode_sound(sound_name):
@@ -328,7 +448,10 @@ class PID:
         return output
 
 # Drive PID: moves a set distance (mm)
-def drive_pid (target_inches, timeout_ms=2000):
+def drive_pid (target_inches, timeout_ms=2000, speed_percent=None):
+    """Drive to target_inches using PID. If speed_percent is provided it temporarily
+    limits the drive output to that percent for this call only.
+    """
     drive_pid = PID(0.5, 0.01, 0.1)
     heading_pid = PID(1.0, 0.0, 0.2)  # Heading correction
     left_drive_smart.reset_position()
@@ -340,7 +463,12 @@ def drive_pid (target_inches, timeout_ms=2000):
         # Define INCH as millimeters per inch
         INCH = 25.4
         drive_power = drive_pid.calculate(target_inches * INCH, avg_pos)
-        drive_power = max(min(drive_power, 100), -100)
+        # Apply temporary speed cap if requested
+        if speed_percent is not None:
+            cap = max(0, min(100, int(speed_percent)))
+        else:
+            cap = 100
+        drive_power = max(min(drive_power, cap), -cap)
         # Heading correction
         current_heading = drivetrain_inertial.rotation()
         heading_error = initial_heading - current_heading
@@ -348,8 +476,8 @@ def drive_pid (target_inches, timeout_ms=2000):
         # Apply correction: add to left, subtract from right
         left_power = drive_power + correction
         right_power = drive_power - correction
-        left_power = max(min(left_power, 100), -100)
-        right_power = max(min(right_power, 100), -100)
+        left_power = max(min(left_power, cap), -cap)
+        right_power = max(min(right_power, cap), -cap)
         left_drive_smart.set_velocity(left_power, PERCENT)
         right_drive_smart.set_velocity(right_power, PERCENT)
         left_drive_smart.spin(FORWARD)
@@ -381,11 +509,3 @@ def turn_pid(target_deg, timeout_ms=2000):
 #---------------------------------------------------------------------------------------------------------------------------------------#
 #---------------------------------------------------------------------------------------------------------------------------------------#
 
-# Autonomous code
-autonomous()
-RED = Color(255, 0, 0)
-brain.screen.set_pen_color(RED)
-brain.screen.clear_screen()
-brain.screen.set_cursor(1, 1)
-brain.screen.print("SEGMENTATION FAULT")       
-calibrate_drivetrain()
