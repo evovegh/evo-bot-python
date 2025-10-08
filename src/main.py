@@ -210,6 +210,7 @@ IntakeFirst1.set_velocity(100, PERCENT)
 IntakeSecond2.set_velocity(70, PERCENT)
 IntakeThird3.set_velocity(100, PERCENT)
 IntakeFourth4.set_velocity(100, PERCENT)
+Inertials = Inertial(Ports.PORT21)
 
 #pnumatics
 
