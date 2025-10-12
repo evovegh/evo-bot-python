@@ -253,86 +253,9 @@ def calibrate_drivetrain():
 calibrate_drivetrain()
 
 # --- Robot info display helpers -------------------------------------------------
-def _safe_attr(obj, name):
-    try:
-        return getattr(obj, name)
-    except Exception:
-        return None
 
-def get_robot_info():
-    info = {}
-    try:
-        # SmartDrive constructor used: SmartDrive(..., wheel_travel, track_width, wheel_diameter, ...)
-        # We try to read common attribute names if available.
-        info[12.57] = _safe_attr(drivetrain, 'wheel_travel')
-        info[14] = _safe_attr(drivetrain, 'track_width')
-        info[4] = _safe_attr(drivetrain, 'wheel_diameter')
-        info[2:1] = _safe_attr(drivetrain, 'external_gear_ratio')
-    except Exception:
-        pass
-
-    try:
-        left_ports = []
-        if 'left_motor_a' in globals():
-            left_ports.append(str(_safe_attr(left_motor_a, 'port') or 'P?'))
-        if 'left_motor_b' in globals():
-            left_ports.append(str(_safe_attr(left_motor_b, 'port') or 'P?'))
-        info['left_motors'] = ','.join(left_ports) if left_ports else None
-    except Exception:
-        info['left_motors'] = None
-
-    try:
-        right_ports = []
-        if 'right_motor_a' in globals():
-            right_ports.append(str(_safe_attr(right_motor_a, 'port') or 'P?'))
-        if 'right_motor_b' in globals():
-            right_ports.append(str(_safe_attr(right_motor_b, 'port') or 'P?'))
-        info['right_motors'] = ','.join(right_ports) if right_ports else None
-    except Exception:
-        info['right_motors'] = None
-
-    # Compute circumference if diameter is available (fallback to 40 mm)
-    try:
-        d = info.get('wheel_diameter')
-        if d is None:
-            d = 40
-        info['wheel_circumference'] = float(d) * 3.14159 if d is not None else None
-    except Exception:
-        info['wheel_circumference'] = None
-
-    info['drivetrain_repr'] = str(drivetrain) if 'drivetrain' in globals() else None
-    return info
-
-def display_robot_info_loop():
-    try:
-        while True:
-            try:
-                info = get_robot_info()
-                wd = info.get('wheel_diameter')
-                circ = info.get('wheel_circumference')
-                tw = info.get('track_width')
-                gr = info.get('gear_ratio')
-                lm = info.get('left_motors') or 'n/a'
-                rm = info.get('right_motors') or 'n/a'
-
-                s1 = 'Wdia:' + (str(int(wd)) if wd is not None else 'n/a') + 'mm'
-                s1 += ' C:' + (str(int(circ)) + 'mm' if circ is not None else 'n/a')
-                screen_print(s1, 6, 1)
-
-                s2 = 'Track:' + (str(int(tw)) + 'mm' if tw is not None else 'n/a')
-                s2 += ' Gear:' + (str(gr) if gr is not None else 'n/a')
-                screen_print(s2, 7, 1)
-
-                s3 = 'L:' + lm + ' R:' + rm
-                screen_print(s3, 8, 1)
-            except Exception:
-                pass
-            wait(1000, MSEC)
-    except Exception:
-        return
 
 # Start robot info display thread
-robot_info_thread = Thread(display_robot_info_loop)
 
 
 def play_vexcode_sound(sound_name):
@@ -490,6 +413,9 @@ def drive_pid (target_inches, timeout_ms=2000, speed_percent=None):
     left_drive_smart.stop()
     right_drive_smart.stop()
 
+
+
+
 # Turn PID: turns to a target heading (deg)
 def turn_pid(target_deg, timeout_ms=2000):
     turn_pid = PID(1.2, 0.01, 0.2)
@@ -508,6 +434,42 @@ def turn_pid(target_deg, timeout_ms=2000):
     left_drive_smart.stop()
     right_drive_smart.stop()
    
+    start_time = brain.timer.time(MSEC)
+while True:
+    avg_rot=(left_drive_smart.position(DEGREES)+right_drive_smart.position(DEGREES))/2
+    wheel_dia_mm=40.0
+    wheel_circumference=3.14159*wheel_dia_mm
+    distance_mm=(avg_rot/360.0)*wheel_circumference
+
+    target_inches = 10  # Set a default value for demonstration
+    target_mm = inches_to_mm(target_inches)
+    drive_power = drive_pid.calculate(target_mm,distance_mm)
+
+    current_heading = drivetrain_inertial.rotation()
+    initial_heading = 0  # Set a default value or retrieve from sensor if needed
+    heading_error = initial_heading - current_heading
+    heading_pid = PID(1.0, 0.0, 0.2)  # Create a PID instance for heading correction
+    correction = heading_pid.calculate(0, heading_error)
+
+    left_power = drive_power + correction
+    right_power = drive_power - correction
+    speed_cap = 100  # Set a default speed cap or retrieve from context if needed
+    left_power = max(min(left_power, speed_cap), -speed_cap)
+    right_power = max(min(right_power, speed_cap), -speed_cap)
+
+    left_drive_smart.set_velocity(left_power, PERCENT)
+    right_drive_smart.set_velocity(right_power, PERCENT)
+    left_drive_smart.spin(FORWARD)
+    right_drive_smart.spin(FORWARD)
+
+    timeout_ms = 2000  # Define a timeout value in milliseconds
+    if abs (target_mm - distance_mm) < 5  or (brain.timer.time(MSEC) - start_time) > timeout_ms:
+        break
+    wait(20, MSEC)
+    left_drive_smart.stop()
+    right_drive_smart.stop()
+
+
 #---------------------------------------------------------------------------------------------------------------------------------------#
 #---------------------------------------------------------------------------------------------------------------------------------------#
 
