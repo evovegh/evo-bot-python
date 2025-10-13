@@ -435,9 +435,11 @@ def turn_pid(target_deg, timeout_ms=2000):
     right_drive_smart.stop()
    
     start_time = brain.timer.time(MSEC)
+
+start_time = brain.timer.time(MSEC)
 while True:
     avg_rot=(left_drive_smart.position(DEGREES)+right_drive_smart.position(DEGREES))/2
-    wheel_dia_mm=40.0
+    wheel_dia_mm=101.6
     wheel_circumference=3.14159*wheel_dia_mm
     distance_mm=(avg_rot/360.0)*wheel_circumference
 
