@@ -435,7 +435,7 @@ def turn_pid(target_deg, timeout_ms=2000):
     right_drive_smart.stop()
    
     start_time = brain.timer.time(MSEC)
-
+initial_heading = drivetrain_inertial.rotation()
 start_time = brain.timer.time(MSEC)
 while True:
     avg_rot=(left_drive_smart.position(DEGREES)+right_drive_smart.position(DEGREES))/2
