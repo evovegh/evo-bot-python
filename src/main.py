@@ -152,6 +152,8 @@ controller_1.buttonA.pressed(load_ball)
 
 
 
+
+
         
 
 def inches_to_mm(inches):
@@ -211,6 +213,7 @@ IntakeSecond2.set_velocity(70, PERCENT)
 IntakeThird3.set_velocity(100, PERCENT)
 IntakeFourth4.set_velocity(100, PERCENT)
 Inertials = Inertial(Ports.PORT21)
+descore_mech = Motor(Ports.PORT12, GearSetting.RATIO_18_1, True)
 
 #pnumatics
 
