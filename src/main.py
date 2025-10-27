@@ -12,7 +12,42 @@ from vex import *
 import random
 # Import urandom for generating random numbers
 brain = Brain()
+# robot configuration
+left_motor_a = Motor(Ports.PORT9, GearSetting.RATIO_6_1,True)
+left_motor_b = Motor(Ports.PORT10, GearSetting.RATIO_6_1, True)
+left_drive_smart = MotorGroup(left_motor_a, left_motor_b)
+right_motor_a = Motor(Ports.PORT8, GearSetting.RATIO_6_1, False)
+right_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_6_1, False)
+right_drive_smart = MotorGroup(right_motor_a, right_motor_b)
+drivetrain_inertial = Inertial(Ports.PORT12)
+drivetrain = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_inertial, 319.19, 320, 40, MM, 2)
 
+IntakeFirst1 = Motor(Ports.PORT1, GearSetting.RATIO_6_1, False)
+IntakeSecond2 = Motor(Ports.PORT2, GearSetting.RATIO_6_1, True)
+IntakeThird3 = Motor(Ports.PORT3, GearSetting.RATIO_18_1, False)
+outake = MotorGroup( IntakeSecond2, IntakeThird3)
+controller_1 = Controller(PRIMARY)
+left_drive_smart.set_stopping(BrakeType.BRAKE)
+right_drive_smart.set_stopping(BrakeType.BRAKE) 
+IntakeFirst1.set_stopping(BrakeType.BRAKE)
+IntakeSecond2.set_stopping(BrakeType.BRAKE)
+IntakeFourth4 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+IntakeThird3.set_stopping(BrakeType.BRAKE)
+IntakeFourth4.set_stopping(BrakeType.BRAKE)
+IntakeFourth4.set_velocity(100, PERCENT)
+# Set the velocity of the motors
+IntakeFirst1.set_velocity(100, PERCENT)
+IntakeSecond2.set_velocity(70, PERCENT)
+IntakeThird3.set_velocity(100, PERCENT)
+IntakeFourth4.set_velocity(100, PERCENT)
+Inertials = Inertial(Ports.PORT21)
+descore_mech = Motor(Ports.PORT12, GearSetting.RATIO_18_1, True)
+
+#pnumatics
+
+ramp_actuator = DigitalOut(brain.three_wire_port.b)
+RollerIntakeA = DigitalOut(brain.three_wire_port.a)
+gateC = DigitalOut(brain.three_wire_port.c)
 
 # Safe Brain screen helpers (some VEX Python builds lack certain screen APIs)
 def screen_clear_line(row):
@@ -184,42 +219,7 @@ comp = Competition(user_control, autonomous)
 # actions to do when the program starts
 brain.screen.clear_screen()
 
-# robot configuration
-left_motor_a = Motor(Ports.PORT9, GearSetting.RATIO_6_1,True)
-left_motor_b = Motor(Ports.PORT10, GearSetting.RATIO_6_1, True)
-left_drive_smart = MotorGroup(left_motor_a, left_motor_b)
-right_motor_a = Motor(Ports.PORT8, GearSetting.RATIO_6_1, False)
-right_motor_b = Motor(Ports.PORT6, GearSetting.RATIO_6_1, False)
-right_drive_smart = MotorGroup(right_motor_a, right_motor_b)
-drivetrain_inertial = Inertial(Ports.PORT12)
-drivetrain = SmartDrive(left_drive_smart, right_drive_smart, drivetrain_inertial, 319.19, 320, 40, MM, 2)
 
-IntakeFirst1 = Motor(Ports.PORT1, GearSetting.RATIO_6_1, False)
-IntakeSecond2 = Motor(Ports.PORT2, GearSetting.RATIO_6_1, True)
-IntakeThird3 = Motor(Ports.PORT3, GearSetting.RATIO_18_1, False)
-outake = MotorGroup( IntakeSecond2, IntakeThird3)
-controller_1 = Controller(PRIMARY)
-left_drive_smart.set_stopping(BrakeType.BRAKE)
-right_drive_smart.set_stopping(BrakeType.BRAKE) 
-IntakeFirst1.set_stopping(BrakeType.BRAKE)
-IntakeSecond2.set_stopping(BrakeType.BRAKE)
-IntakeFourth4 = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
-IntakeThird3.set_stopping(BrakeType.BRAKE)
-IntakeFourth4.set_stopping(BrakeType.BRAKE)
-IntakeFourth4.set_velocity(100, PERCENT)
-# Set the velocity of the motors
-IntakeFirst1.set_velocity(100, PERCENT)
-IntakeSecond2.set_velocity(70, PERCENT)
-IntakeThird3.set_velocity(100, PERCENT)
-IntakeFourth4.set_velocity(100, PERCENT)
-Inertials = Inertial(Ports.PORT21)
-descore_mech = Motor(Ports.PORT12, GearSetting.RATIO_18_1, True)
-
-#pnumatics
-
-ramp_actuator = DigitalOut(brain.three_wire_port.b)
-RollerIntakeA = DigitalOut(brain.three_wire_port.a)
-gateC = DigitalOut(brain.three_wire_port.c)
 
 
 
