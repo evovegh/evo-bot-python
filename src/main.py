@@ -13,6 +13,7 @@ import random
 # Import urandom for generating random numbers
 brain = Brain()
 
+
 # Safe Brain screen helpers (some VEX Python builds lack certain screen APIs)
 def screen_clear_line(row):
     try:
@@ -148,7 +149,6 @@ def load_ball():
     loader_control(FORWARD)
 
 controller_1.buttonA.pressed(load_ball)
-
 
 
 
@@ -291,6 +291,17 @@ def rc_auto_loop_function_controller_1():
                 right_drive_smart.stop()
                 while drivetrain_inertial.is_calibrating():
                     sleep(25, MSEC)
+            if controller_1.buttonX.pressing():
+                descore_mech.spin(REVERSE)
+            else:
+                descore_mech.stop()
+            
+            if controller_1.buttonB.pressing():
+                descore_mech.spin(FORWARD)
+            else:
+                descore_mech.stop()
+            
+
             
             # calculate the drivetrain motor velocities from the controller joystick axies
             # left = axis3 + axis1
@@ -448,7 +459,9 @@ while True:
 
     target_inches = 10  # Set a default value for demonstration
     target_mm = inches_to_mm(target_inches)
-    drive_power = drive_pid.calculate(target_mm,distance_mm)
+    _drive_pid = PID(0.5, 0.01, 0.1)
+
+    drive_power = _drive_pid.calculate(target_mm,distance_mm)
 
     current_heading = drivetrain_inertial.rotation()
     initial_heading = 0  # Set a default value or retrieve from sensor if needed
@@ -476,5 +489,7 @@ while True:
 
 
 #---------------------------------------------------------------------------------------------------------------------------------------#
-#---------------------------------------------------------------------------------------------------------------------------------------#
+#---------------------------------------------------------------------------------------------------------------------------------------#ssss
 
+initial_heading = drivetrain_inertial.rotation()
+start_time = brain.timer.time(MSEC)
